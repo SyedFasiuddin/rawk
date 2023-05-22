@@ -72,7 +72,7 @@ struct Lexer {
 impl Lexer {
     fn new(str: String) -> Self {
         Self {
-            chars: str.chars().collect(),
+            chars: str.trim().chars().collect(),
             idx: 0,
         }
     }
