@@ -1,3 +1,12 @@
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+struct Args {
+
+    /// Input files to scan
+    file: Vec<String>
+}
+
 fn main() {
-    println!("Hello, world!");
+    let _args = Args::parse();
 }
