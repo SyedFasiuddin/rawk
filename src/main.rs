@@ -61,6 +61,12 @@ enum Token {
     Equal,
     NotEqual,
     // ?:
+
+    // Other Stuff
+    Begin,
+    End,
+    String(String),
+    RegExp(String),
     Other(String),
 }
 
@@ -86,6 +92,16 @@ impl Lexer {
                 break;
             } else if self.chars[self.idx] == '#' {
                 self.skip_comment_line();
+            } else if self.chars[self.idx] == '"' {
+                self.idx += 1; // skip first '"'
+                let str = self.handle_string();
+                self.skip_whitespace();
+                return Some(Token::String(str));
+            } else if self.chars[self.idx] == '/' {
+                self.idx += 1; // skip first '/'
+                let re = self.handle_regex();
+                self.skip_whitespace();
+                return Some(Token::RegExp(re));
             } else {
                 word.push(self.chars[self.idx]);
                 self.idx += 1;
@@ -147,8 +163,11 @@ impl Lexer {
             "==" => Some(Token::Equal),
             "!=" => Some(Token::NotEqual),
 
-            _ => None,
+            "BEGIN" => Some(Token::Begin),
+            "END" => Some(Token::End),
+
             // word => Some(Token::Other(word.to_string())),
+            _ => None,
         }
     }
 
@@ -178,12 +197,58 @@ impl Lexer {
             self.idx += 1;
         }
     }
+
+    fn handle_string(&mut self) -> String {
+        let mut str = String::new();
+
+        while self.idx < self.chars.len() {
+            let c = self.chars[self.idx];
+            if c == '\\' {
+                if self.chars[self.idx + 1] == '"' {
+                    str.push('\\');
+                    str.push('"');
+                    self.idx += 2; // 1 for \ and 1 for "
+                    continue;
+                }
+            }
+            if c == '"' {
+                self.idx += 1; // skip closing '"'
+                break;
+            }
+            str.push(c);
+            self.idx += 1;
+        }
+
+        str
+    }
+
+    fn handle_regex(&mut self) -> String {
+        let mut str = String::new();
+
+        while self.idx < self.chars.len() {
+            let c = self.chars[self.idx];
+            if c == '/' {
+                self.idx += 1; // skip ending '/'
+                break;
+            }
+            str.push(c);
+            self.idx += 1;
+        }
+
+        str
+    }
 }
 
 fn main() {
     let _args = Args::parse();
 
-    let awk = "function if else while do exit print + ++ -=";
+    // let awk = r#" { } "abc\"def\"ghi" ( ) [ ] function BEGIN END if else while do exit print + ++ -="#;
+
+    let awk = r#"
+BEGIN { print "Analysis of \"li\"" }
+/li/  { ++n }
+END   { print "\"li\" appears in", n, "records." }
+        "#;
 
     let mut lex = Lexer::new(awk.to_string());
     while let Some(token) = lex.next() {
